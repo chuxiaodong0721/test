@@ -1,26 +1,29 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png">
-  <HelloWorld msg="Welcome to Your Vue.js App"/>
+  <HelloWorld v-if="route===1"/>
+  <rockerControl v-if="route===2"/>
 </template>
 
 <script>
 import HelloWorld from './components/HelloWorld.vue'
+import rockerControl from "@/components/rockerControl"; './components/rockerControl'
 
 export default {
   name: 'App',
   components: {
-    HelloWorld
+    HelloWorld,
+    rockerControl,
+  },
+  data(){
+    return {
+      route: 1
+    }
   }
 }
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
+  body{
+    margin: 0;
+  }
+
 </style>

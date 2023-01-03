@@ -1,58 +1,163 @@
 <template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-eslint" target="_blank" rel="noopener">eslint</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
+  <div class="container">
+    <div id="main"></div>
+    <button class="bt1" @click="bt1">test</button>
+    <button class="bt1" @click="stopRotate">stop rotate</button>
+<!--    <img src="@/assets/basketball.png" alt="">-->
   </div>
 </template>
 
 <script>
+import * as THREE from 'three'
+import * as dat from 'dat.gui'
+import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls'
+import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js'
+import gasp from 'gsap'
+
+let carGLB = null
+let animationMixer = null
 export default {
   name: 'HelloWorld',
-  props: {
-    msg: String
-  }
+  data() {
+    return {
+      scene: '',
+      camera: '',
+      renderer: '',
+      basketballAnimation: '',
+    }
+  },
+  mounted() {
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(25, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 10, 20)
+
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.querySelector('#main').appendChild(renderer.domElement);
+
+    // 控制器
+    const orbitControls = new OrbitControls(camera, renderer.domElement);
+    // orbitControls.autoRotate = true
+    orbitControls.autoRotateSpeed = 2
+
+    // 网格
+    // const gridHelper = new THREE.GridHelper(10, 10);
+    // scene.add(gridHelper);
+
+
+    // 材质
+    const geometry = new THREE.SphereGeometry(1, 64, 64);
+    const textureLoader = new THREE.TextureLoader();
+    const basketballTexture = textureLoader.load(require('../assets/basketball2.png'))
+    // 纹理显示的算法 默认为线性显示
+    basketballTexture.magFilter = THREE.NearestFilter
+    basketballTexture.minFilter = THREE.NearestFilter
+    const material = new THREE.MeshBasicMaterial({
+      color: '#d7d7d7',
+      map: basketballTexture,
+    });
+    const cube = new THREE.Mesh(geometry,material);
+    cube.position.set(0, 5, 0)
+    const basketballAnimation = gasp.to(cube.position,
+        {
+          y: -5,
+          duration: 3,
+          repeat: -1,
+          yoyo: true,
+          yoyoEase: 'power4.out',
+          ease: "power4.out"
+        }
+    )
+
+    //灯光
+    const ambientLight = new THREE.AmbientLight(0xffffff,0.5);
+    scene.add(ambientLight)
+    const directionalLight = new THREE.DirectionalLight(0xffffff,1.5);
+    directionalLight.position.set(0.3,0.6,0.5)
+    scene.add(directionalLight)
+
+    //陆地
+    const land = new THREE.BoxGeometry(10,0.01,10);
+    const landMaterial = new THREE.MeshBasicMaterial({color:'#5b5b5b'});
+    scene.add(new THREE.Mesh(land,landMaterial))
+
+    //车模型
+    new GLTFLoader().load('../3dModel/lanboCar.glb',gltf=>{
+      console.log(gltf)
+      carGLB = gltf
+      scene.add(carGLB.scene)
+      this.bt1()
+    })
+
+
+    // scene.add(cube);
+
+
+
+
+    // 实时渲染页面
+    function render() {
+      orbitControls.update()
+      renderer.render(scene, camera);
+      requestAnimationFrame(render)
+
+      if (animationMixer){
+        animationMixer.update(0.009)
+      }
+    }
+    render()
+
+
+    // 参数编辑器
+    const gui = new dat.GUI();
+    gui.add(basketballTexture.offset,'x').min(-1).max(1)
+    gui.add(basketballTexture.offset,'y').min(-1).max(1)
+    gui.add(ambientLight,'intensity').min(0).max(2)
+    gui.add(directionalLight.position,'x').min(0).max(1)
+    gui.add(directionalLight.position,'y').min(0).max(1)
+    gui.add(directionalLight.position,'z').min(0).max(1)
+    gui.add(directionalLight.position,'x').min(0).max(1)
+    gui.add(directionalLight,'intensity').min(0).max(2)
+
+
+    this.basketballAnimation = basketballAnimation
+    this.orbitControls = orbitControls
+  },
+  methods: {
+    bt1() {
+      // this.basketballAnimation.duration(this.basketballAnimation.duration() + 1)
+      // this.basketballAnimation.ease = 'bounce.out'
+
+      animationMixer = new THREE.AnimationMixer(carGLB.scene);
+      carGLB.animations.forEach(clip=>{
+        const action = animationMixer.clipAction(clip);
+        action.loop = THREE.LoopOnce
+        action.play()
+        action.clampWhenFinished = true
+      })
+    },
+    stopRotate() {
+      this.orbitControls.autoRotate = !this.orbitControls.autoRotate
+    }
+  },
 }
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h3 {
-  margin: 40px 0 0;
+.bt1 {
+  height: 100px;
+  width: 200px;
+  position: relative;
+  top: 0px;
+  left: 0px;
+  z-index: 1000;
 }
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
+</style>
+<style>
+
+canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 </style>
